@@ -12,3 +12,7 @@ sdk/*.jar
 node_modules/
 dist/
 *.log
+upstream-reference
+upstream-reference/
+sdk/*.keystore
+*.keystore
