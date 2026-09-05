@@ -8,6 +8,9 @@ import android.security.keystore.KeyProperties;
 import java.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDatabaseCorruptException;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -513,6 +516,100 @@ public class OmpCoreBridge {
     @JavascriptInterface
     public void log(String message) {
         System.out.println("[OMP-Native] " + message);
+    }
+
+    // =========================================================================
+    // 6. Native SQLite Database Engine
+    // =========================================================================
+
+    private SQLiteDatabase mDatabase;
+
+    private synchronized SQLiteDatabase getDatabase() {
+        if (mDatabase != null && mDatabase.isOpen()) {
+            return mDatabase;
+        }
+        File dbFile = (mContext != null)
+                ? mContext.getDatabasePath("omp_sessions.db")
+                : new File(mWorkspaceDir, "omp_sessions.db");
+        if (dbFile.getParentFile() != null && !dbFile.getParentFile().exists()) {
+            dbFile.getParentFile().mkdirs();
+        }
+        try {
+            mDatabase = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
+        } catch (SQLiteDatabaseCorruptException e) {
+            log("Corrupted database detected, creating fresh database: " + e.getMessage());
+            File corruptBackup = new File(dbFile.getAbsolutePath() + ".corrupt." + System.currentTimeMillis());
+            dbFile.renameTo(corruptBackup);
+            mDatabase = SQLiteDatabase.openOrCreateDatabase(dbFile, null);
+        }
+        return mDatabase;
+    }
+
+    @JavascriptInterface
+    public boolean executeSql(String sql, String argsJson) {
+        try {
+            SQLiteDatabase db = getDatabase();
+            if (argsJson != null && !argsJson.trim().isEmpty() && !argsJson.equals("[]")) {
+                JSONArray arr = new JSONArray(argsJson);
+                Object[] bindArgs = new Object[arr.length()];
+                for (int i = 0; i < arr.length(); i++) {
+                    bindArgs[i] = arr.isNull(i) ? null : arr.get(i);
+                }
+                db.execSQL(sql, bindArgs);
+            } else {
+                db.execSQL(sql);
+            }
+            return true;
+        } catch (Exception e) {
+            log("executeSql error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public String querySql(String sql, String argsJson) {
+        JSONArray rows = new JSONArray();
+        try {
+            SQLiteDatabase db = getDatabase();
+            String[] selectionArgs = null;
+            if (argsJson != null && !argsJson.trim().isEmpty() && !argsJson.equals("[]")) {
+                JSONArray arr = new JSONArray(argsJson);
+                selectionArgs = new String[arr.length()];
+                for (int i = 0; i < arr.length(); i++) {
+                    selectionArgs[i] = arr.isNull(i) ? null : String.valueOf(arr.get(i));
+                }
+            }
+            try (Cursor cursor = db.rawQuery(sql, selectionArgs)) {
+                String[] colNames = cursor.getColumnNames();
+                while (cursor.moveToNext()) {
+                    JSONObject row = new JSONObject();
+                    for (int i = 0; i < colNames.length; i++) {
+                        String col = colNames[i];
+                        switch (cursor.getType(i)) {
+                            case Cursor.FIELD_TYPE_NULL:
+                                row.put(col, JSONObject.NULL);
+                                break;
+                            case Cursor.FIELD_TYPE_INTEGER:
+                                row.put(col, cursor.getLong(i));
+                                break;
+                            case Cursor.FIELD_TYPE_FLOAT:
+                                row.put(col, cursor.getDouble(i));
+                                break;
+                            case Cursor.FIELD_TYPE_STRING:
+                                row.put(col, cursor.getString(i));
+                                break;
+                            case Cursor.FIELD_TYPE_BLOB:
+                                row.put(col, Base64.getEncoder().encodeToString(cursor.getBlob(i)));
+                                break;
+                        }
+                    }
+                    rows.put(row);
+                }
+            }
+        } catch (Exception e) {
+            log("querySql error: " + e.getMessage());
+        }
+        return rows.toString();
     }
 
     // --- Helper Thread to collect stream output without blocking ---

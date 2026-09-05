@@ -19,6 +19,7 @@ import type {
 
 export * from "./types";
 export * from "./session/storage";
+export * from "./session/sqlite-store";
 export * from "./hashline";
 export * from "./tools/todo";
 export * from "./tools/ask";
