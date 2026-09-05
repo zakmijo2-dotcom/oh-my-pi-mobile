@@ -270,3 +270,11 @@ export class OhMyPiCoreEngine {
     await this.store.saveSession(this.state, this.messages);
   }
 }
+
+// Attach to window for mobile browser / WebView host
+if (typeof window !== "undefined") {
+  const win = window as unknown as Record<string, unknown>;
+  win.OmpCore = {
+    OhMyPiCoreEngine,
+  };
+}
