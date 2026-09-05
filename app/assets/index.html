@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>oh-my-pi Mobile</title>
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+  <div id="app" class="mobile-scaffold">
+    <header class="app-header">
+      <div class="brand">
+        <span class="logo-symbol">π</span>
+        <div class="brand-text">
+          <h1>oh-my-pi</h1>
+          <span class="subtitle">Mobile Local Port</span>
+        </div>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot active"></span>
+        <span id="engine-status">Scaffold Ready</span>
+      </div>
+    </header>
+
+    <main class="scaffold-content">
+      <div class="device-badge">
+        <span class="badge-label">Target:</span>
+        <span id="device-info">Poco X7 Pro Class (ARM64)</span>
+      </div>
+
+      <div class="card scaffold-card">
+        <div class="card-header">
+          <span class="status-pill confirmed">GATE 2 SCAFFOLD</span>
+          <h2>Local Core Engine Boundary</h2>
+        </div>
+        <div class="card-body">
+          <p class="desc">The isolated core module boundary is initialized and decoupled from the UI.</p>
+          <div class="feature-checklist">
+            <div class="check-item"><span class="check-icon">✓</span> Android Native Shell initialized</div>
+            <div class="check-item"><span class="check-icon">✓</span> Local-Only Persistence Layer connected</div>
+            <div class="check-item"><span class="check-icon">✓</span> RPC Protocol Event Bus loaded</div>
+            <div class="check-item"><span class="check-icon">✓</span> Zero Cloud Dependency / 100% On-Device</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <span class="build-ver">v1.0.0 (Gate 2 Scaffold)</span>
+    </footer>
+  </div>
+
+  <script src="js/index.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const devInfo = document.getElementById('device-info');
+      const engineStatus = document.getElementById('engine-status');
+
+      if (window.OmpNativeBridge && typeof window.OmpNativeBridge.getDeviceModel === 'function') {
+        devInfo.textContent = window.OmpNativeBridge.getDeviceModel();
+      }
+
+      if (window.OmpCore) {
+        engineStatus.textContent = 'Core Ready';
+      }
+    });
+  </script>
+</body>
+</html>
