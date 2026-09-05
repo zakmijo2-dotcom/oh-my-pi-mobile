@@ -6,6 +6,7 @@
  * and RPC messaging, presenting an event-driven interface to the mobile UI.
  */
 
+import { MobileAgentLoop } from "./agent/loop";
 import { LocalSessionStore, type IStorageBackend } from "./session/storage";
 import type {
   CoreMessage,
@@ -38,6 +39,7 @@ export class OhMyPiCoreEngine {
   private state: CoreSessionState;
   private messages: CoreMessage[] = [];
   private listeners: Set<EventListener> = new Set();
+  private agentLoop = new MobileAgentLoop();
   private abortController: AbortController | null = null;
   private offlineOnly: boolean;
 
@@ -170,6 +172,21 @@ export class OhMyPiCoreEngine {
         await this.handlePrompt(command.message);
         break;
       }
+      case "execute_tool": {
+        const outcome = await this.agentLoop.executeTool(
+          command.name,
+          command.args,
+          (evt) => this.emit(evt)
+        );
+        this.emit({
+          type: "tool_end",
+          toolCallId: `call_direct_${Date.now()}`,
+          name: command.name,
+          result: outcome.result,
+          isError: outcome.isError,
+        });
+        break;
+      }
       case "configure_keys": {
         for (const [provider, key] of Object.entries(command.keys)) {
           await this.store.saveApiKey(provider, key);
@@ -209,7 +226,7 @@ export class OhMyPiCoreEngine {
       const sampleResponse = this.synthesizeLocalResponse(userText);
       for (const token of sampleResponse.tokens) {
         const { promise, resolve } = Promise.withResolvers<void>();
-        setTimeout(resolve, 20);
+        setTimeout(resolve, 2);
         await promise;
         this.emit({
           type: "message_delta",
