@@ -1,13 +1,16 @@
 {
   "name": "oh-my-pi-mobile",
-  "version": "1.0.0",
-  "description": "Standalone mobile application for oh-my-pi with local-only core execution and touch-first UI",
+  "version": "18.1.10",
+  "description": "Oh My Pi Mobile — Authentic mobile port and Android application driving real oh-my-pi harness and all 60+ providers",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build:core": "bun build core/index.ts --outdir app/assets/js --target browser --minify",
     "build:apk": "./build.sh",
-    "test": "bun test test/"
+    "test": "bun test ./test/boundary.test.ts ./test/hashline.test.ts ./test/todo.test.ts ./test/ask.test.ts ./test/fs.test.ts ./test/rpc.test.ts ./test/git.test.ts ./test/terminal.test.ts ./test/provider.test.ts ./test/sqlite-storage.test.ts ./test/interaction-flow.test.ts ./test/offline-hardening.test.ts ./test/performance.test.ts"
   },
   "dependencies": {},
   "devDependencies": {
