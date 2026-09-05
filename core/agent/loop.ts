@@ -10,6 +10,7 @@ import { MultiProviderStreamClient } from "../ai/stream";
 import { applyHashlinePatch } from "../hashline";
 import { AskQuestionManager, type AskQuestion } from "../tools/ask";
 import { RealWorkspace } from "../tools/fs";
+import { GitTool, type GitToolParams } from "../tools/git";
 import { TodoStateMachine, type TodoToolParams } from "../tools/todo";
 import type {
   CoreMessage,
@@ -27,6 +28,7 @@ export class MobileAgentLoop {
   private workspace = new RealWorkspace();
   private todo = new TodoStateMachine();
   private ask = new AskQuestionManager();
+  private git = new GitTool();
 
   getWorkspace(): RealWorkspace {
     return this.workspace;
@@ -131,6 +133,22 @@ export class MobileAgentLoop {
           required: ["path"],
         },
         tier: "discoverable",
+      },
+      {
+        name: "git",
+        description: "Execute Git operations (status, diff, log, add, commit, checkout, clone, push)",
+        parameters: {
+          type: "object",
+          properties: {
+            op: { type: "string" },
+            message: { type: "string" },
+            files: { type: "array" },
+            branch: { type: "string" },
+            url: { type: "string" },
+          },
+          required: ["op"],
+        },
+        tier: "essential",
       },
     ];
   }
@@ -288,6 +306,10 @@ export class MobileAgentLoop {
             return { result: "Questions presented to user", isError: false };
           }
           return { result: "Invalid ask parameters", isError: true };
+        }
+        case "git": {
+          const res = await this.git.execute(args as unknown as GitToolParams);
+          return { result: res, isError: res.isError };
         }
         case "grep": {
           const pattern = String(args.pattern ?? "");
