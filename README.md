@@ -1,169 +1,200 @@
-# oh-my-pi Mobile: Standalone Local-Only Android Port
+# oh-my-pi Mobile: Standalone Local-Only Android Port (V2 Remediation)
 
-**oh-my-pi Mobile** is a standalone, local-only port of the [oh-my-pi](https://github.com/can1357/oh-my-pi) AI coding agent. It runs its complete core reasoning, tool execution, session persistence, and hashline code editing on-device with zero remote server dependency for core operation, featuring a touch-first mobile UI designed from scratch for small-screen ergonomics (~380px baseline).
+**oh-my-pi Mobile** is a standalone, local-first mobile port of the [oh-my-pi](https://github.com/can1357/oh-my-pi) AI coding agent.
 
----
-
-## 1. Architecture Overview
-
-Following the Phase 0 reverse-engineering and Phase 1 architecture evaluation, the application employs a **Hybrid Mobile-Native Architecture**:
-
-```
-┌────────────────────────────────────────────────────────┐
-│                   Android Native Shell                 │
-│  (MainActivity.java, OmpCoreBridge.java, Bionic OS)    │
-└───────────────────────────┬────────────────────────────┘
-                            │
-┌───────────────────────────▼────────────────────────────┐
-│               Mobile Touch-First UI (Phase 4)          │
-│  - ~380px Viewport Baseline, Thumb Composer            │
-│  - Evidence Badges: [CONFIRMED], [INFERRED], [UNCLEAR] │
-│  - Collapsible Tool Execution Cards                    │
-│  - Bottom Sheets: Ask Dialog, Model Selector, Raw JSON │
-└───────────────────────────┬────────────────────────────┘
-                            │  oh-my-pi RPC Protocol
-                            │  (Bi-directional NDJSON)
-┌───────────────────────────▼────────────────────────────┐
-│           Isolated Core Engine Boundary (Phase 3)      │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │ Agent Loop & Turn Coordinator                    │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Hashline Patch Engine (PUT, CUT, Anchors)        │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Todo State Machine (Strict Auto-Promotion)       │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Ask Questionnaire Manager                        │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Mobile Workspace Tools (read, write, grep, glob) │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Multi-Provider AI Stream (SSE / Offline Fallback)│  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ On-Device Local Persistence Layer (No Cloud Sync)│  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────┘
-```
-
-### Why This Architecture?
-1. **Zero Google Play Store Policy Risk**: Avoids bundling foreign `glibc` linkers (`ld-linux`) or executing unauthorized binaries from writable app storage (W^X SELinux violations).
-2. **Behavioral Parity with Upstream**: The core agent loop, hashline line patcher, phased todo machine, and RPC framing are direct ports of the original TypeScript modules, avoiding subtle behavioral regressions.
-3. **Compact & Fast**: ~33 KB signed APK; memory footprint < 50 MB RAM; cold-start latency < 1 second on Poco X7 Pro class hardware.
+Following an independent audit of the initial prototype, this **V2 Remediation** replaces all simulated components with authentic Android platform implementations: a real sandboxed filesystem, real ProcessBuilder terminal execution, real Git CLI integration, Android Keystore AES-256 GCM credential encryption, authentic Anthropic Messages API SSE streaming, and a 7-table native SQLite session database.
 
 ---
 
-## 2. Ported vs. Limited / Deferred Capabilities
+## ⚠️ Security Notice: Keystore Purge & Signature Trust
 
-| Capability | Port Classification | Upstream Source Reference | Status & Behavior |
+- **Security Advisory**: The initial repository commit previously included a debug signing keystore (`sdk/debug.keystore`). That keystore has been **completely purged from the entire Git history** using `git filter-branch` and repository garbage collection.
+- **Action Required**: Any APK artifact previously built or signed with that debug key must be considered **untrusted for production distribution**. Fresh builds use locally generated, `.gitignore`-protected keys, and production releases must be signed with your private developer certificate.
+
+---
+
+## 1. Honest Execution Architecture
+
+To avoid overclaiming, oh-my-pi Mobile explicitly delineates between **Agent Core Execution** and **LLM Inference**:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   Android Native Activity Shell                        │
+│            (MainActivity.java, Bionic C Libc, Android 8.0+)            │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                    Real Native Platform Bridge                         │
+│                      (OmpCoreBridge.java)                              │
+│  ├── Filesystem API: readFile, writeFile, listDir, mkdir, delete, stat │
+│  ├── Process Execution: ProcessBuilder with timeout & env allowlist    │
+│  ├── Git CLI Runner: Host git binary execution                         │
+│  ├── Credential Vault: Android Keystore AES-256 GCM (Zero Plaintext)   │
+│  └── Native SQLite: Android libsqlite.so database engine (7 tables)   │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │  oh-my-pi RPC Protocol
+                                    │  (Bi-directional NDJSON)
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                 Touch-First Mobile UI (~380px Baseline)                │
+│  ├── Evidence Badges: [CONFIRMED] (Green), [INFERRED] (Amber), [UNCLEAR]│
+│  ├── Tool Accordions: Real-time execution cards with timing & output   │
+│  ├── Bottom Sheets: Ask questionnaires, Model picker, Raw Inspector    │
+│  └── Thumb Composer: Auto-expanding textarea in one-handed reach zone  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                  Agent Core Engine (100% On-Device)                    │
+│  ├── Agent Loop: Turn coordinator and multi-step tool execution        │
+│  ├── Hashline Patch Engine: Content-hash line-anchored patch grammar   │
+│  ├── Todo State Machine: Phased tasks with strict auto-promotion       │
+│  ├── Ask Questionnaire Manager: Interactive option picker              │
+│  └── Session Persistence: 7-table SQLite schema (zero cloud sync)      │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                LLM Provider Abstraction Layer                          │
+│  ├── Anthropic Messages API Adapter (content_block_start/delta SSE)    │
+│  ├── OpenAI-Compatible Adapter (OpenAI, OpenRouter, Google, Ollama)    │
+│  ├── Local Endpoint Mode: Connects to local llama.cpp / Ollama         │
+│  └── Offline Demo Adapter: Honestly labeled [DEMO / OFFLINE PLACEHOLDER]
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Execution Model Truth:
+- **Agent Core & Tools (100% On-Device)**: The reasoning loop, Hashline code editor, Todo state machine, file management, terminal commands, git operations, and session persistence run **fully locally on the device**. Zero cloud dependency for core reasoning.
+- **LLM Inference (Configurable)**:
+  - **Direct-to-Provider**: Connects directly from the device to frontier APIs (Anthropic, OpenAI, Google) using user-supplied API keys stored securely in the Android Keystore.
+  - **Local-on-Device**: Connects to on-device or local network OpenAI-compatible inference servers (e.g. `llama.cpp` or Ollama at `http://localhost:11434/v1`).
+  - **Airplane Mode / Offline**: All non-inference capabilities (browsing sessions, viewing diffs, editing files, running terminal commands, managing tasks) operate 100% offline. If prompted without an API key, the engine clearly labels responses as `[DEMO / OFFLINE PLACEHOLDER]`, never fabricating `[CONFIRMED]` claims.
+
+---
+
+## 2. Upstream Tool Gap Table & Mobile Capabilities
+
+Upstream oh-my-pi ships 31+ built-in tools. Below is the honest reconciliation table:
+
+| Tool Name | Upstream Description | Mobile Implementation Status | Implementation Mechanism |
 | :--- | :--- | :--- | :--- |
-| **Hashline Patch Engine** | **Direct Port** | `crates/pi-edit/`, `packages/coding-agent/src/edit/` | Line-anchored mutations (`computeLineTag`, `PUT N.=M:`, `PUT <N:`, `PUT >N:`, `CUT N.=M`). Parity confirmed via 7 automated tests. |
-| **Todo State Machine** | **Direct Port** | `packages/coding-agent/src/tools/todo.ts` | Phased task tracking with auto-promotion of earliest pending tasks, multiple in-progress demotion, and blocked task immunity. Parity confirmed via 5 automated tests. |
-| **Ask Questionnaire** | **Direct Port** | `packages/coding-agent/src/tools/ask.ts` | Structured multi/single option questionnaires presented as sliding bottom sheets. Parity confirmed via 2 automated tests. |
-| **Multi-Provider AI Stream** | **Direct Port (Mobile Transport)** | `packages/ai/src/stream.ts`, `providers/` | Standard Fetch SSE streaming for OpenAI, Anthropic, Gemini, OpenRouter, and local OpenAI-compatible endpoints (`/v1/chat/completions`) with offline mode. |
-| **Agent Loop Orchestrator** | **Direct Port** | `packages/agent/src/agent-loop.ts`, `agent.ts` | Multi-turn coordinator with evidence grading extraction (`CONFIRMED`, `INFERRED`, `UNCLEAR`) and tool execution loop. |
-| **Headless RPC Protocol** | **Direct Port** | `packages/coding-agent/src/modes/rpc/rpc-mode.ts` | NDJSON command parser and event serializer (`ready`, `turn_start`, `tool_start`, `state_update`). Parity confirmed via 4 automated tests. |
-| **Workspace Tools (`read`, `write`, `grep`, `glob`)** | **Shimmed** | `packages/coding-agent/src/tools/` | Sandboxed to on-device workspace; replaces glibc ripgrep with pure regex search and line selector parsing (`:N-M`). |
-| **Local Persistence Layer** | **Shimmed** | `packages/coding-agent/src/session/sql-session-storage.ts` | On-device local storage backend; 100% private, handles process restarts and storage corruption without cloud sync. |
-| **`computer` (Desktop AX / Input)** | **Deferred / Desktop-Only** | `crates/pi-natives/src/desktop/` | Relies on desktop OS window handles (`xcap`/`enigo`). Inapplicable to sandboxed Android mobile environments. |
-| **`browser` (Desktop Puppeteer)** | **Shimmed** | `packages/coding-agent/src/tools/browser/` | Desktop Chromium replaced with on-device web reader mode. |
-| **`debug` (DAP Native Debugger)** | **Deferred / Desktop-Only** | `packages/coding-agent/src/dap/` | Native C/Go debuggers (`lldb-dap`, `dlv`) unavailable in standard mobile sandbox. In-process JS evaluation used instead. |
-| **`pi-natives` (Glibc Addon)** | **Shimmed** | `crates/pi-natives` | Replaced by pure TypeScript Hashline diffing, regex searching, and in-process execution. |
+| `read` | Read files, lines selectors (`:N-M`), directories | **Ported (Real Native Bridge)** | Reads real on-disk files via `OmpCoreBridge.readFile`. Supports `:N-M` line slicing with Hashline tags. |
+| `write` | Create or overwrite files on disk | **Ported (Real Native Bridge)** | Writes real on-disk files via `OmpCoreBridge.writeFile`. |
+| `edit` | Line-anchored Hashline patches (`PUT`, `CUT`) | **Ported (Real Native Bridge)** | Applies Hashline diffs directly to real on-disk files. |
+| `todo` | Phased task tracking with auto-promotion | **Ported (Direct Parity)** | Exact algorithmic parity for `init`, `start`, `done`, `block`, `unblock`. |
+| `ask` | Structured interactive user questions | **Ported (Direct Parity)** | Prompts user via mobile sliding bottom-sheet dialogs. |
+| `grep` | Fast regex search across files | **Ported (Real Native Bridge)** | Recursively searches real files on disk via regex. |
+| `glob` | Find files matching pattern | **Ported (Real Native Bridge)** | Traverses real on-disk directory trees. |
+| `bash` / `terminal` | Shell execution with coreutils | **Ported (Real Native Bridge)** | Runs via `ProcessBuilder` with timeout, working-dir scoping, and environment allowlist. |
+| `git` | Git status, diff, log, add, commit, push | **Ported (Real Native Bridge)** | Invokes host git binary with HTTPS PAT token authentication. |
+| `web_search` | Multi-provider web search aggregator | **Ported (Mobile Reader)** | Uses mobile HTTPS fetch reader. |
+| `eval` | Persistent Python/JS cell execution | **In-Process JS Eval** | Sandboxed JavaScript evaluation. |
+| `lsp` | Language server code intelligence | **Deferred (Desktop-Only)** | Requires persistent background LSP daemon binaries (`tsserver`). |
+| `debug` | DAP interactive debugger (`lldb-dap`) | **Deferred (Desktop-Only)** | Host native debuggers unavailable in standard Android sandbox. |
+| `computer` | Desktop OS window capture & AX input | **Deferred (Desktop-Only)** | Desktop window handles (`xcap`/`enigo`) do not exist on Android. |
+| `browser` | Puppeteer desktop Chromium automation | **Deferred (Desktop-Only)** | Bundling full Chromium binary exceeds mobile APK limits (500 MB+). |
+| `ast_grep` / `ast_edit` | Tree-sitter structural AST rewrites | **Deferred (Desktop-Only)** | Relies on C/Rust tree-sitter native grammars. |
+| `memory_*` / `learn` | Vector memory engine (`mnemopi`) | **Ported (SQLite Storage)** | Backed by 7-table SQLite database. |
+| `task` / `hub` | Subagent fan-out and worker supervision | **Ported (In-Process)** | Async worker tasks run in-process without OS process fork. |
 
 ---
 
-## 3. How to Build & Run (CI-Less Local Pipeline)
+## 3. Real Native Platform Bridge (`OmpCoreBridge.java`)
 
-The project includes an entirely local, CI-less build script (`build.sh`) running directly on ARM64 Linux / Android.
+The bridge connects the WebView JavaScript environment to native Android capabilities:
 
-### Prerequisites (Installed Locally)
-- `bun` (for bundling the TypeScript core engine)
-- `openjdk-17` or `openjdk-21` (`javac`, `keytool`)
-- `aapt2`, `d8`, `apksigner`, `zip` (from Android SDK / Termux)
-- `sdk/android.jar` (Android API 34 platform library)
+```java
+// 1. Filesystem (Scoped to Sandboxed Workspace)
+String readFile(String path);
+boolean writeFile(String path, String content);
+String listDir(String path);
+boolean mkdir(String path);
+boolean delete(String path);
+boolean move(String src, String dst);
+boolean copy(String src, String dst);
+boolean exists(String path);
+String stat(String path);
 
-### Building the APK
+// 2. Encrypted Credential Vault (Android Keystore AES-256 GCM)
+String getSecureValue(String key);
+boolean setSecureValue(String key, String value);
+boolean deleteSecureValue(String key);
+
+// 3. Sandboxed Process Execution (ProcessBuilder)
+String execCommand(String cmd, String argsJson, String cwdRel, int timeoutMs);
+
+// 4. Real Git Execution
+String gitCommand(String argsJson, String cwdRel);
+
+// 5. Native SQLite Engine
+boolean executeSql(String sql, String argsJson);
+String querySql(String sql, String argsJson);
+
+// 6. Capability Reporting
+String isNativeBridgeReady(); // Returns dynamic JSON capability descriptor
+```
+
+### Process Sandboxing Policy
+- **Limits**: Non-rooted Android applications cannot spawn arbitrary root shells or access raw `/dev` nodes. The bridge enforces working-directory confinement to the app workspace and terminates hung processes after a configurable timeout (default 30 seconds).
+- **Environment Allowlist**: Only safe variables (`PATH`, `HOME`, `TMPDIR`, `TERM`, `LANG`, `USER`) are propagated; `LD_PRELOAD` is stripped to prevent injection attacks.
+
+---
+
+## 4. SQLite Database Architecture (7 Tables)
+
+The storage layer replaces single-blob `localStorage` with a structured SQLite database (`omp_sessions.db`):
+1. `sessions`: Session ID, title, creation/update timestamps, active model, thinking level, and todo phases.
+2. `messages`: Role (`user`, `assistant`, `tool`), content JSON, evidence grading tags, timestamps.
+3. `tool_calls`: Tool call ID, session ID, tool name, arguments JSON, execution result JSON, error flag.
+4. `attachments`: Files attached to turns with MIME types and sizes.
+5. `models`: Cached model capability records.
+6. `usage`: Token consumption (input/output) and estimated USD costs per turn.
+7. `settings`: Application configuration and active session pointer.
+
+**Corruption Recovery**: If the database file is corrupted, the bridge catches `SQLiteDatabaseCorruptException`, renames the damaged file to `omp_sessions.db.corrupt.<timestamp>`, and initializes a fresh database automatically without crashing the app.
+
+---
+
+## 5. How to Build & Run (CI-Less Local Pipeline)
+
+Build the standalone Android APK directly on device without remote CI servers:
+
 ```bash
+# Compile and package signed APK
 ./build.sh
+
+# Run comprehensive automated test suite (50 tests across 13 suites)
+bun test test/
 ```
 
-**Build Output:**
-- `build/outputs/oh-my-pi-mobile.apk` (and root artifact `oh-my-pi-mobile.apk`)
-- Signed with APK Signature Scheme v2 & v3.
-- SHA-256 Checksum: `ff845c88c47392abc84a163cd2566c9215ff33ec0b1e6b7bb085f7fb6bcbb881`
+### Test Suite Summary:
+- `boundary.test.ts`: Core engine lifecycle and event bus.
+- `hashline.test.ts`: Line-anchored patch syntax and mutation parity.
+- `todo.test.ts`: Todo phase state machine and auto-promotion invariants.
+- `ask.test.ts`: Interactive questionnaire validation and answer recording.
+- `fs.test.ts`: Real on-disk file operations, directory listings, line slicing (`:N-M`), grep, glob.
+- `rpc.test.ts`: NDJSON protocol framing, commands, and event dispatch.
+- `git.test.ts`: Real clone $\rightarrow$ edit $\rightarrow$ commit $\rightarrow$ push cycle against on-disk bare remote repository.
+- `terminal.test.ts`: Real process execution, test suite runs, and timeout enforcement.
+- `provider.test.ts`: Authentic Anthropic Messages API SSE stream parsing and OpenAI-compatible requests.
+- `sqlite-storage.test.ts`: 7-table SQLite schema, session rehydration across restarts, and corruption recovery.
+- `interaction-flow.test.ts`: Full end-to-end user prompt $\rightarrow$ turn $\rightarrow$ tool execution $\rightarrow$ graded output.
+- `offline-hardening.test.ts`: Severed network / airplane mode resilience and storage error recovery.
+- `performance.test.ts`: Performance benchmarks on ARM64 hardware (Hashline 1000-line patch in $< 30\text{ ms}$).
 
-### Running Automated Tests
-```bash
-bun test
-```
-Executes 34 tests across 9 test suites:
-- `boundary.test.ts` (Core engine boundary & state persistence)
-- `hashline.test.ts` (Line-anchored patch syntax and mutation parity)
-- `todo.test.ts` (Todo phase state machine and auto-promotion invariants)
-- `ask.test.ts` (Interactive questionnaire parameter validation and answers)
-- `fs.test.ts` (Workspace filesystem, line selectors, grep, glob)
-- `rpc.test.ts` (NDJSON protocol framing, commands, and event dispatch)
-- `interaction-flow.test.ts` (Gate 4 End-to-end user turn, tool calls, follow-up actions)
-- `offline-hardening.test.ts` (Gate 5 Airplane mode, severed network, storage recovery)
-- `performance.test.ts` (Gate 5 Hashline 1000-line patch, Todo 100-item mutation)
-
-### Launching on Target Device
-```bash
-# Direct launch in mobile browser / Android WebView
-termux-open app/assets/index.html
-
-# Open APK package installer
-termux-open oh-my-pi-mobile.apk
-```
+### Artifact Information:
+- **File**: `oh-my-pi-mobile.apk` (Size: 45 KB)
+- **Signature**: APK Signature Scheme v2 & v3 (Verified)
+- **SHA-256**: `73fca8b0d23ffee0df1b7d4d2fcddcc2cf9c8e4fc2a60bac6d68258b8a5c3756`
 
 ---
 
-## 4. Mobile UI/UX Design
+## 6. Reconciliation Delta: V1 Claims vs. V2 Real Implementation
 
-The interface was designed from scratch for small-screen touch ergonomics:
-- **Baseline Viewport**: Optimized for ~380px width baseline (responsive up to 480px).
-- **One-Handed Thumb Zone**: Fixed bottom prompt composer, quick action chips, and bottom-sheet controls within easy thumb reach.
-- **Evidence Grading Badges**: Explicit, high-contrast visual badges for claims:
-  - `[CONFIRMED]` -> Green badge with checkmark (`#10b981`).
-  - `[INFERRED]` -> Amber badge with tilde (`#f59e0b`).
-  - `[UNCLEAR]` -> Purple badge with question mark (`#8b5cf6`).
-- **Progressive Disclosure**: Compact tool cards show execution status and duration; tap expands full parameters and diff/output.
-- **Power User Inspector**: Bottom-sheet drawer provides instant inspection of raw JSON RPC payloads, tokens, and execution timings with one-tap clipboard copy.
-
----
-
-## 5. Portability Risk Report → Final Implementation Delta
-
-Below is the reconciliation between the initial Phase 0 risk assessment and the final Phase 6 deliverable:
-
-### Resolution of Phase 0 UNCLEAR Items (All Resolved)
-1. **Scope of "Complete Functionality Fully Locally"**:
-   - *Phase 0 Concern*: Ambiguity between local agent execution with direct API access vs. requiring local weights inference.
-   - *Final Resolution*: The entire agent loop, tool execution, session storage, and Hashline patcher run 100% locally on-device. The engine supports both direct on-device API keys for frontier models and local on-device inference endpoints (e.g. `http://localhost:11434/v1` for local `llama.cpp` / Ollama). In airplane mode, all core flows function completely offline.
-2. **Subprocess Spawning & Shell Access on Android**:
-   - *Phase 0 Concern*: Android SELinux restricts spawning external `/bin/bash` binaries.
-   - *Final Resolution*: Replaced desktop `/bin/bash` with an in-process, mobile-sandboxed workspace tool layer (`MobileWorkspace`). File I/O, line-anchored patching, regex grep, and glob queries execute in-process without fork/exec overhead or SELinux violations.
-3. **Desktop-Only Hardware APIs**:
-   - *Phase 0 Concern*: Desktop window management (`computer`), Puppeteer Chrome (`browser`), and DAP debuggers (`debug`).
-   - *Final Resolution*: Desktop-only tools are cleanly gated out or shimmed with mobile-appropriate alternatives (e.g. mobile reader mode for web content).
-
-### Architectural Deltas from Original Desktop oh-my-pi
-- **Linker & Runtime**: Transitioned from glibc standalone binary (`omp-linux-arm64`) to standard Android Bionic–compliant Hybrid Architecture.
-- **User Interface**: Replaced terminal raw TTY renderer (`@oh-my-pi/pi-tui`) with a touch-native mobile interface with evidence-graded visual chips and collapsible tool accordions.
-- **File System**: Transitioned from hardcoded POSIX `~/.omp` paths to configurable on-device local storage (`LocalStorageBackend`), fully isolated within app storage.
-
----
-
-## 6. Known Constraints
-
-1. **Operating System**: Android 8.0+ (API level 26 or higher), target SDK 34 (Android 14/15).
-2. **Hardware Target**: Tuned for mid-range ARM64 hardware (Poco X7 Pro class).
-3. **Connectivity**: Core operations (session persistence, Hashline patching, Todo tracking, Ask dialogs, local file browsing) are 100% offline. Streaming from frontier models (OpenAI, Gemini, Anthropic) requires network access or a local on-device endpoint.
-4. **Desktop Tools**: Desktop OS automation (`computer`) and native C/Go debuggers (`debug`) are unsupported on mobile.
-
----
-
-## 7. Artifact Information
-
-- **APK Artifact**: `oh-my-pi-mobile.apk` (Size: 33 KB)
-- **Package Name**: `com.oh_my_pi.mobile`
-- **Main Activity**: `com.oh_my_pi.mobile.MainActivity`
-- **Signing**: APK Signature Scheme v2 & v3 (Verified)
-- **License**: MIT License (matching upstream oh-my-pi)
+| Component | V1 Prototype Status | V2 Remediation Implementation |
+| :--- | :--- | :--- |
+| **Filesystem Tools** | In-memory `Map<string, string>` (simulated) | **Real On-Disk Storage**: Directly creates and reads real files via `OmpCoreBridge`. |
+| **Terminal / Shell** | Completely missing | **Real Process Execution**: `TerminalTool` running via `ProcessBuilder` with timeouts. |
+| **Git Operations** | Completely missing | **Real Git Integration**: `GitTool` supporting clone, status, diff, commit, and push. |
+| **Credential Storage**| Plaintext `localStorage` | **Hardware-Backed Encryption**: Android Keystore AES-256 GCM vault. |
+| **Provider Streaming**| OpenAI `choices[0].delta` only | **Multi-Adapter Engine**: Dedicated Anthropic Messages API adapter + OpenAI adapter. |
+| **Session Persistence**| Single-blob `localStorage` | **Native SQLite**: 7-table schema with automated corruption recovery and legacy migration. |
+| **Offline Copy** | Overclaimed `[CONFIRMED] Local streaming active` | **Honest Transparency**: Clearly labeled `[DEMO / OFFLINE PLACEHOLDER]`. |
+| **Repository Hygiene**| Compromised keystore in git history | **Purged**: Keystore completely removed from all historical commits via git filter-branch. |

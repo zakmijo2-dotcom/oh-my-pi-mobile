@@ -36,23 +36,26 @@
             <button class="inspect-trigger" onclick="window.inspectWelcome()">{ } RAW</button>
           </div>
           <div class="card-text-body">
-            <strong>oh-my-pi Mobile</strong> is initialized and running fully on-device.
+            <strong>oh-my-pi Mobile</strong> initialized. Real Android platform bridge connected.
             <div class="evidence-container" style="margin-top: 8px;">
               <div class="evidence-badge confirmed">
                 <span class="pill">✓ CONFIRMED</span>
-                <span class="claim">Core agent engine executing 100% on-device (Poco X7 Pro target).</span>
+                <span class="claim">Agent Core: Executing on-device (Reasoning, Hashline, Todo, Git, Terminal).</span>
               </div>
               <div class="evidence-badge confirmed">
                 <span class="pill">✓ CONFIRMED</span>
-                <span class="claim">Local persistence layer active — all session state stays on-device.</span>
+                <span class="claim">Persistence: Local SQLite storage + Keystore-encrypted credential vault.</span>
               </div>
               <div class="evidence-badge inferred">
                 <span class="pill">~ INFERRED</span>
-                <span class="claim">Offline capability enabled for local tool dispatch and session inspection.</span>
+                <span class="claim">LLM Inference: Configurable (Direct API or local endpoint e.g. llama.cpp).</span>
+              </div>
+              <div class="evidence-badge confirmed">
+                <span class="pill">✓ CONFIRMED</span>
+                <span class="claim">Offline Scope: Core operations &amp; file/git tools run 100% offline.</span>
               </div>
             </div>
           </div>
-        </div>
       </div>
     </main>
 
@@ -104,19 +107,19 @@
       title.textContent = "Welcome Event Payload";
       const payload = {
         app: "oh-my-pi-mobile",
-        version: "1.0.0",
+        version: "2.0.0",
         platform: "Android (ARM64)",
-        architecture: "Hybrid Mobile-Native",
-        evidenceGrading: {
-          confirmed: 2,
-          inferred: 1,
-          unclear: 0
+        architecture: "Hybrid Mobile-Native with Real Platform Bridge",
+        executionModel: {
+          agentCore: "On-device local execution",
+          persistence: "Android SQLite (7 tables) + Keystore AES-256 GCM vault",
+          llmInference: "Direct provider API (OpenAI/Anthropic) or local endpoint (llama.cpp/Ollama)",
+          offlineCapabilities: "Full offline operation for core tools, Hashline edits, and session state"
         },
-        toolsPorted: ["hashline", "todo", "ask", "read", "write", "grep", "glob"],
-        zeroCloudDependency: true
+        toolsAvailable: ["read", "write", "edit", "todo", "ask", "grep", "glob", "git", "bash"],
+        zeroCloudTelemetry: true
       };
       body.innerHTML = `<pre class="raw-json-view">${JSON.stringify(payload, null, 2)}</pre>`;
-      overlay.classList.add("active");
     };
   </script>
 </body>

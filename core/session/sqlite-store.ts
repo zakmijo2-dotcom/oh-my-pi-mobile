@@ -68,9 +68,12 @@ export class BunSqliteDatabase implements ISqliteDatabase {
   private db: any;
 
   constructor(dbPath = ":memory:") {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Database } = require("bun:sqlite");
-    this.db = new Database(dbPath);
+    const meta = import.meta as unknown as { require?: (m: string) => { Database: new (p: string) => unknown } };
+    if (meta && typeof meta.require === "function") {
+      const modName = "bun" + ":sqlite";
+      const { Database } = meta.require(modName);
+      this.db = new Database(dbPath);
+    }
   }
 
   async execute(sql: string, params: unknown[] = []): Promise<boolean> {
