@@ -18,6 +18,13 @@ import type {
 
 export * from "./types";
 export * from "./session/storage";
+export * from "./hashline";
+export * from "./tools/todo";
+export * from "./tools/ask";
+export * from "./tools/fs";
+export * from "./ai/stream";
+export * from "./agent/loop";
+export * from "./rpc/dispatcher";
 
 export interface CoreEngineOptions {
   storageBackend?: IStorageBackend;
