@@ -5,6 +5,7 @@ bin/
 *.idsig
 *.dex
 
+!oh-my-pi-mobile.apk
 # Local SDK binaries / caches
 sdk/*.jar
 .cache/
