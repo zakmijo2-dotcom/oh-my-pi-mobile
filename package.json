@@ -7,7 +7,7 @@
   "scripts": {
     "build:core": "bun build core/index.ts --outdir app/assets/js --target browser --minify",
     "build:apk": "./build.sh",
-    "test": "bun test"
+    "test": "bun test test/"
   },
   "dependencies": {},
   "devDependencies": {

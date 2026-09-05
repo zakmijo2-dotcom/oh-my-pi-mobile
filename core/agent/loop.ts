@@ -9,7 +9,7 @@
 import { MultiProviderStreamClient } from "../ai/stream";
 import { applyHashlinePatch } from "../hashline";
 import { AskQuestionManager, type AskQuestion } from "../tools/ask";
-import { MobileWorkspace } from "../tools/fs";
+import { RealWorkspace } from "../tools/fs";
 import { TodoStateMachine, type TodoToolParams } from "../tools/todo";
 import type {
   CoreMessage,
@@ -24,11 +24,11 @@ export type EventSink = (event: CoreRpcEvent) => void;
 
 export class MobileAgentLoop {
   private streamClient = new MultiProviderStreamClient();
-  private workspace = new MobileWorkspace();
+  private workspace = new RealWorkspace();
   private todo = new TodoStateMachine();
   private ask = new AskQuestionManager();
 
-  getWorkspace(): MobileWorkspace {
+  getWorkspace(): RealWorkspace {
     return this.workspace;
   }
 
