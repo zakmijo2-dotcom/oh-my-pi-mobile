@@ -27,6 +27,7 @@ export * from "./ai/stream";
 export * from "./agent/loop";
 export * from "./rpc/dispatcher";
 export * from "./tools/git";
+export * from "./tools/terminal";
 
 export interface CoreEngineOptions {
   storageBackend?: IStorageBackend;

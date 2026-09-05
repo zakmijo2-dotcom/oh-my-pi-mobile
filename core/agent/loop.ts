@@ -11,6 +11,7 @@ import { applyHashlinePatch } from "../hashline";
 import { AskQuestionManager, type AskQuestion } from "../tools/ask";
 import { RealWorkspace } from "../tools/fs";
 import { GitTool, type GitToolParams } from "../tools/git";
+import { TerminalTool, type TerminalToolParams } from "../tools/terminal";
 import { TodoStateMachine, type TodoToolParams } from "../tools/todo";
 import type {
   CoreMessage,
@@ -29,6 +30,7 @@ export class MobileAgentLoop {
   private todo = new TodoStateMachine();
   private ask = new AskQuestionManager();
   private git = new GitTool();
+  private terminal = new TerminalTool();
 
   getWorkspace(): RealWorkspace {
     return this.workspace;
@@ -147,6 +149,20 @@ export class MobileAgentLoop {
             url: { type: "string" },
           },
           required: ["op"],
+        },
+        tier: "essential",
+      },
+      {
+        name: "bash",
+        description: "Execute terminal shell commands within mobile workspace sandbox",
+        parameters: {
+          type: "object",
+          properties: {
+            command: { type: "string" },
+            cwd: { type: "string" },
+            timeout: { type: "number" },
+          },
+          required: ["command"],
         },
         tier: "essential",
       },
@@ -310,6 +326,11 @@ export class MobileAgentLoop {
         case "git": {
           const res = await this.git.execute(args as unknown as GitToolParams);
           return { result: res, isError: res.isError };
+        }
+        case "bash":
+        case "terminal": {
+          const res = await this.terminal.execute(args as unknown as TerminalToolParams);
+          return { result: res, isError: res.exitCode !== 0 };
         }
         case "grep": {
           const pattern = String(args.pattern ?? "");
