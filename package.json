@@ -1,0 +1,17 @@
+{
+  "name": "oh-my-pi-mobile",
+  "version": "1.0.0",
+  "description": "Standalone mobile application for oh-my-pi with local-only core execution and touch-first UI",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:core": "bun build core/index.ts --outdir app/assets/js --target browser --minify",
+    "build:apk": "./build.sh",
+    "test": "bun test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}
